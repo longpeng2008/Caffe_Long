@@ -1,0 +1,8 @@
+src/caffe/layers/adapted_weighted_softmax_with_loss_layer.cpp: In instantiation of ‘void caffe::AdaptedWeightedSoftmaxWithLossLayer<Dtype>::Forward_cpu(const std::vector<caffe::Blob<Dtype>*>&, const std::vector<caffe::Blob<Dtype>*>&) [with Dtype = float]’:
+src/caffe/layers/adapted_weighted_softmax_with_loss_layer.cpp:138:1:   required from here
+src/caffe/layers/adapted_weighted_softmax_with_loss_layer.cpp:53:9: warning: unused variable ‘loss’ [-Wunused-variable]
+   Dtype loss = 0;
+         ^
+src/caffe/layers/adapted_weighted_softmax_with_loss_layer.cpp: In instantiation of ‘void caffe::AdaptedWeightedSoftmaxWithLossLayer<Dtype>::Forward_cpu(const std::vector<caffe::Blob<Dtype>*>&, const std::vector<caffe::Blob<Dtype>*>&) [with Dtype = double]’:
+src/caffe/layers/adapted_weighted_softmax_with_loss_layer.cpp:138:1:   required from here
+src/caffe/layers/adapted_weighted_softmax_with_loss_layer.cpp:53:9: warning: unused variable ‘loss’ [-Wunused-variable]

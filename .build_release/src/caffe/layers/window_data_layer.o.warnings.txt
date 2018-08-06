@@ -1,0 +1,4 @@
+src/caffe/layers/window_data_layer.cpp: In member function ‘virtual void caffe::WindowDataLayer<Dtype>::DataLayerSetUp(const std::vector<caffe::Blob<Dtype>*>&, const std::vector<caffe::Blob<Dtype>*>&)’:
+src/caffe/layers/window_data_layer.cpp:104:46: error: could not convert ‘& datum’ from ‘caffe::Datum*’ to ‘std::vector<int>’
+       if (!ReadFileToDatum(image_path, &datum)) {
+                                              ^

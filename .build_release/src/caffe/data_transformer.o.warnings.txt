@@ -1,0 +1,32 @@
+src/caffe/data_transformer.cpp: In instantiation of ‘void caffe::DataTransformer<Dtype>::Transform(const cv::Mat&, caffe::Blob<Dtype>*) [with Dtype = float]’:
+src/caffe/data_transformer.cpp:933:2:   required from here
+src/caffe/data_transformer.cpp:270:14: warning: unused variable ‘min_side’ [-Wunused-variable]
+    const int min_side = param_.min_side();
+              ^
+src/caffe/data_transformer.cpp: In instantiation of ‘void caffe::DataTransformer<Dtype>::TransformImageSeg(const cv::Mat&, const cv::Mat&, caffe::Blob<Dtype>*, caffe::Blob<Dtype>*, int) [with Dtype = float]’:
+src/caffe/data_transformer.cpp:933:2:   required from here
+src/caffe/data_transformer.cpp:561:14: warning: unused variable ‘rotation_angle’ [-Wunused-variable]
+    const int rotation_angle = param_.max_rotation_angle();
+              ^
+src/caffe/data_transformer.cpp:565:16: warning: unused variable ‘max_smooth’ [-Wunused-variable]
+    const float max_smooth = param_.max_smooth();
+                ^
+src/caffe/data_transformer.cpp:568:15: warning: unused variable ‘debug_params’ [-Wunused-variable]
+    const bool debug_params = param_.debug_params();
+               ^
+src/caffe/data_transformer.cpp: In instantiation of ‘void caffe::DataTransformer<Dtype>::Transform(const cv::Mat&, caffe::Blob<Dtype>*) [with Dtype = double]’:
+src/caffe/data_transformer.cpp:933:2:   required from here
+src/caffe/data_transformer.cpp:270:14: warning: unused variable ‘min_side’ [-Wunused-variable]
+    const int min_side = param_.min_side();
+              ^
+src/caffe/data_transformer.cpp: In instantiation of ‘void caffe::DataTransformer<Dtype>::TransformImageSeg(const cv::Mat&, const cv::Mat&, caffe::Blob<Dtype>*, caffe::Blob<Dtype>*, int) [with Dtype = double]’:
+src/caffe/data_transformer.cpp:933:2:   required from here
+src/caffe/data_transformer.cpp:561:14: warning: unused variable ‘rotation_angle’ [-Wunused-variable]
+    const int rotation_angle = param_.max_rotation_angle();
+              ^
+src/caffe/data_transformer.cpp:565:16: warning: unused variable ‘max_smooth’ [-Wunused-variable]
+    const float max_smooth = param_.max_smooth();
+                ^
+src/caffe/data_transformer.cpp:568:15: warning: unused variable ‘debug_params’ [-Wunused-variable]
+    const bool debug_params = param_.debug_params();
+               ^
