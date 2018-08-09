@@ -432,6 +432,7 @@ message LayerParameter {
   optional LabelSpecificHardMarginParameter label_specific_hard_margin_param = 1407;
   optional LabelSpecificAddParameter label_specific_add_param = 1408;
 
+  optional ChannelShuffleParameter channel_shuffle_param = 1409;
 }
 
 // Message that stores parameters used to apply transformation
@@ -1596,4 +1597,11 @@ message LabelSpecificAddParameter {
   optional float bias_min = 6 [default =0.0];
   optional float bias_max = 7 [default =0.0];
   optional uint32 iteration = 8 [default = 0];
+}
+
+message ChannelShuffleParameter {
+  optional int32 shuffle_pattern = 1 [default = 1]; // 0 or 1, so far two patterns.
+  optional int32 shuffle_channel_num = 2 [default = 1]; // exchange how many channels each time [pattern 1]
+  // group number, the same as previous ConV layer setting [pattern 1]
+  optional uint32 group = 3 [default = 1]; 
 }
