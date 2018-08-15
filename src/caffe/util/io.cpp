@@ -335,7 +335,7 @@ void ReadImagesList(const string& source,
     std::istringstream iss(line);
     string filename;
     std::vector<float> labels;
-    int label;
+    float label;
     CHECK(iss >> filename) << "Error reading line " << line_num;
     while (iss >> label) {
       labels.push_back(label);
