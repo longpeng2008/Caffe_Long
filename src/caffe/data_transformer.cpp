@@ -709,6 +709,218 @@ namespace caffe {
 			}
 		}
 
+	////-------------------DataTransformer for segmentation--------------------////
+	template<typename Dtype>
+		void DataTransformer<Dtype>::TransformImageProb(const cv::Mat& cv_img, const cv::Mat& cv_label,Blob<Dtype>* transformed_img_blob, Blob<Dtype>* transformed_label_blob, int ignore_label) {
+			// Check dimensions.
+			const int img_channels = cv_img.channels();
+			int img_height = cv_img.rows;
+			int img_width = cv_img.cols;
+			const int label_channels = cv_label.channels();
+			int label_height = cv_label.rows;
+			int label_width = cv_label.cols;
+
+			const int channels = transformed_img_blob->channels();
+			const int height = transformed_img_blob->height();
+			const int width = transformed_img_blob->width();
+			const int num = transformed_img_blob->num();
+
+			CHECK_EQ(channels, img_channels);
+			CHECK_GE(num, 1);
+			CHECK_EQ(label_channels,transformed_label_blob->channels());
+			CHECK_EQ(img_height, label_height);
+			CHECK_EQ(img_width, label_width);
+			CHECK_EQ(height, transformed_label_blob->height());
+			CHECK_EQ(width, transformed_label_blob->width());
+
+			CHECK(cv_img.depth() == CV_8U) << "Image data type must be unsigned byte";
+			CHECK(cv_label.depth() == CV_8U) << "Label data type must be unsigned byte";
+
+			const Dtype scale = param_.scale();
+			const bool do_mirror = param_.mirror() && Rand(2);
+			const bool has_mean_file = param_.has_mean_file();
+			const bool has_mean_values = mean_values_.size() > 0;
+
+			CHECK_GT(img_channels, 0);
+
+			Dtype* mean = NULL;
+			if (has_mean_file) {
+				CHECK_EQ(img_channels, data_mean_.channels());
+				CHECK_EQ(img_height, data_mean_.height());
+				CHECK_EQ(img_width, data_mean_.width());
+				mean = data_mean_.mutable_cpu_data();
+			}
+			if (has_mean_values) {
+				CHECK(mean_values_.size() == 1 || mean_values_.size() == img_channels) <<
+					"Specify either 1 mean_value or as many as channels: " << img_channels;
+				if (img_channels > 1 && mean_values_.size() == 1) {
+					// Replicate the mean_value for simplicity
+					for (int c = 1; c < img_channels; ++c) {
+						mean_values_.push_back(mean_values_[0]);
+					}
+				}
+			}
+
+			///--data augmentation///
+			int h_off = 0;
+			int w_off = 0;
+			cv::Mat cv_cropped_img = cv_img;
+			cv::Mat cv_cropped_label = cv_label;
+
+			const int min_side_min = param_.min_side_min();
+			const int min_side_max = param_.min_side_max();
+			const int crop_size = param_.crop_size();
+			const int rotation_angle = param_.max_rotation_angle();
+			const float min_contrast = param_.min_contrast();
+			const float max_contrast = param_.max_contrast();
+			const int max_brightness_shift = param_.max_brightness_shift();
+			const float max_smooth = param_.max_smooth();
+			const int max_color_shift = param_.max_color_shift();
+			const float apply_prob = 1.f - param_.apply_probability();
+			const bool debug_params = param_.debug_params();
+			const bool use_deformed_resize = param_.use_deformed_resize(); 
+			const float deformed_resize_th = param_.deformed_resize_th(); 
+
+			///--1 random resize--/// 
+			const bool do_resize_to_min_side_min = min_side_min > 0;
+			const bool do_resize_to_min_side_max = min_side_max > 0;
+			float current_apply_resize_prob;
+			caffe_rng_uniform(1, 0.f, 1.f, &current_apply_resize_prob);
+			if(use_deformed_resize && (current_apply_resize_prob >= deformed_resize_th)){
+				CHECK(min_side_min >= crop_size);
+				int newsize = min_side_min + Rand(min_side_max - min_side_min + 1);
+				cv::resize(cv_img, cv_cropped_img, cv::Size(newsize,newsize), 0, 0, cv::INTER_NEAREST);
+				cv::resize(cv_label, cv_cropped_label, cv::Size(newsize,newsize), 0, 0, cv::INTER_NEAREST);
+				img_height = newsize;
+				img_width  = newsize;
+			}else{
+				if (do_resize_to_min_side_min && do_resize_to_min_side_max) {
+					int min_side_length = min_side_min + Rand(min_side_max - min_side_min + 1);
+					Dtype scale_tmp;
+					if(img_height < img_width){
+						scale_tmp = (Dtype)min_side_length / (Dtype)img_height;
+						img_height = min_side_length;
+						img_width  = int(img_width  * scale_tmp);
+					}else{
+						scale_tmp = (Dtype)min_side_length / (Dtype)img_width;
+						img_width  = min_side_length;
+						img_height = int(img_height * scale_tmp);
+					}
+					cv::resize(cv_img, cv_cropped_img, cv::Size(img_width, img_height), 0, 0, cv::INTER_NEAREST);
+					cv::resize(cv_label, cv_cropped_label, cv::Size(img_width, img_height), 0, 0, cv::INTER_NEAREST);
+				}
+			}
+			///--2 brightness_adjustment--/// 
+			float current_prob;
+			caffe_rng_uniform(1, 0.f, 1.f, &current_prob);
+			const bool do_brightness = param_.contrast_brightness_adjustment() && phase_ == TRAIN && current_prob > apply_prob;
+			// set contrast and brightness
+			float alpha;
+			int beta;
+			if (do_brightness){
+				caffe_rng_uniform(1, min_contrast, max_contrast, &alpha);
+				beta = Rand(max_brightness_shift * 2 + 1) - max_brightness_shift;
+				cv_cropped_img.convertTo(cv_cropped_img, -1, alpha, beta);
+			}
+
+			///--3 color transform--/// 
+			caffe_rng_uniform(1, 0.f, 1.f, &current_prob);
+			const bool do_color_shift = max_color_shift > 0 && phase_ == TRAIN && current_prob > apply_prob;
+			// apply color shift
+			if (do_color_shift) {
+				int b = Rand(max_color_shift + 1);
+				int g = Rand(max_color_shift + 1);
+				int r = Rand(max_color_shift + 1);
+				int sign = Rand(2);
+
+				cv::Mat shiftArr = cv_cropped_img.clone();
+				shiftArr.setTo(cv::Scalar(b,g,r));
+
+				if (sign == 1) {
+					cv_cropped_img -= shiftArr;
+				} else {
+					cv_cropped_img += shiftArr;
+				}
+			}
+
+			int pad_height = std::max(crop_size-img_height, 0);
+			int pad_width = std::max(crop_size-img_width, 0);
+			if (pad_height > 0 || pad_width >0) {
+				cv::copyMakeBorder(cv_cropped_img, cv_cropped_img, 0, pad_height,0, pad_width,
+						cv::BORDER_CONSTANT, cv::Scalar(mean_values_[0], mean_values_[1], mean_values_[2]));
+				cv::copyMakeBorder(cv_cropped_label, cv_cropped_label, 0, pad_height, 0, pad_width,
+						cv::BORDER_CONSTANT, cv::Scalar(ignore_label));
+				img_height = cv_cropped_img.rows;
+				img_width = cv_cropped_img.cols;
+				label_height = cv_cropped_label.rows;
+				label_width = cv_cropped_label.cols;
+			} 
+
+			if (crop_size) {
+				CHECK_EQ(crop_size, height);
+				CHECK_EQ(crop_size, width);
+				// We only do random crop when we do training.
+				if (phase_ == TRAIN) {
+					h_off = Rand(img_height - crop_size + 1);
+					w_off = Rand(img_width - crop_size + 1);
+				} else {
+					h_off = (img_height - crop_size) / 2;
+					w_off = (img_width - crop_size) / 2;
+				}
+				cv::Rect roi(w_off, h_off, crop_size, crop_size);
+				cv_cropped_img = cv_cropped_img(roi);
+				cv_cropped_label = cv_cropped_label(roi);
+			} else {
+				CHECK_EQ(img_height, height);
+				CHECK_EQ(img_width, width);
+			}
+
+			CHECK(cv_cropped_img.data);
+			CHECK(cv_cropped_label.data);
+
+			Dtype* transformed_data = transformed_img_blob->mutable_cpu_data();
+			Dtype* transformed_label = transformed_label_blob->mutable_cpu_data();
+			int top_index;
+			for (int h = 0; h < height; ++h) {
+				const uchar* img_ptr = cv_cropped_img.ptr<uchar>(h);
+				const uchar* label_ptr = cv_cropped_label.ptr<uchar>(h);
+				int img_index = 0;
+				int label_index = 0;
+				for (int w = 0; w < width; ++w) {
+					for (int c = 0; c < img_channels; ++c) {
+						if (do_mirror) {
+							top_index = (c * height + h) * width + (width - 1 - w);
+						} else {
+							top_index = (c * height + h) * width + w;
+						}
+						Dtype pixel = static_cast<Dtype>(img_ptr[img_index++]);
+						if (has_mean_file) {
+							int mean_index = (c * img_height + h_off + h) * img_width + w_off + w;
+							transformed_data[top_index] =
+								(pixel - mean[mean_index]) * scale;
+						} else {
+							if (has_mean_values) {
+								transformed_data[top_index] =
+									(pixel - mean_values_[c]) * scale;
+							} else {
+								transformed_data[top_index] = pixel * scale;
+							}
+						}
+					}
+
+					for (int c = 0; c < label_channels; ++c) {
+						if (do_mirror) {
+							top_index = (c * height + h) * width + (width - 1 - w);
+						} else {
+							top_index = (c * height + h) * width + w;
+						}
+						Dtype pixel = static_cast<Dtype>(label_ptr[label_index++]);
+						transformed_label[top_index] = (Dtype)pixel * 0.0039;
+					}
+				}
+			}
+		}
+
 #endif  // USE_OPENCV
 
 	template<typename Dtype>

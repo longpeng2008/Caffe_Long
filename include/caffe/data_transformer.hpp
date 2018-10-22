@@ -76,6 +76,7 @@ class DataTransformer {
    */
   void Transform(const cv::Mat& cv_img, Blob<Dtype>* transformed_blob);
   void TransformImageSeg(const cv::Mat& cv_img, const cv::Mat& cv_label, Blob<Dtype>* transformed_img_blob, Blob<Dtype>* transformed_label_blob, int ignore_label);
+  void TransformImageProb(const cv::Mat& cv_img, const cv::Mat& cv_label, Blob<Dtype>* transformed_img_blob, Blob<Dtype>* transformed_label_blob, int ignore_label);
 #endif  // USE_OPENCV
 
   /**
