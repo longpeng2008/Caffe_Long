@@ -433,6 +433,7 @@ message LayerParameter {
   optional LabelSpecificAddParameter label_specific_add_param = 1408;
 
   optional ChannelShuffleParameter channel_shuffle_param = 1409;
+  optional CompactBilinearParameter compact_bilinear_param=1410;
 }
 
 // Message that stores parameters used to apply transformation
@@ -1604,4 +1605,9 @@ message ChannelShuffleParameter {
   optional int32 shuffle_channel_num = 2 [default = 1]; // exchange how many channels each time [pattern 1]
   // group number, the same as previous ConV layer setting [pattern 1]
   optional uint32 group = 3 [default = 1]; 
+}
+
+message CompactBilinearParameter {
+   optional uint32 num_output = 1;
+   optional bool sum_pool = 2 [default = true]; 
 }
